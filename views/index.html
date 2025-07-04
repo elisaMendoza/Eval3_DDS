@@ -1,0 +1,86 @@
+<!-- Página de inicio de Filo al Toque -->
+<!-- Este archivo es la vista principal que se muestra al usuario al acceder a la aplicación --> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Filo al Toque - Welcome</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+ background-color: #ff6600; /* matching palette: orange */
+ text-align: center;
+ margin-top: 50px;
+}
+h1 {
+    color: #fff;
+}
+a {
+    display: inline-block;
+    margin: 20px;
+    padding: 10px 20px;
+    background-color: #fff;
+    color: #060924;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+}
+a:hover {
+    background-color: #f0f0f0;
+}
+img {
+    max-width: 300px;
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <img src="/images/filo.jpeg" alt="Filo al Toque Logo" />
+        <h1>Bienvenido a Filo al Toque - Chile</h1>
+        <h3>Tu plataforma de servicio de afilado de cuchillos y herramientas</h3>
+        <p>Para comenzar, por favor regístrate o inicia sesión</p>
+
+        <div id="auth-section">
+            <a href="/views/register.html">Registro</a>
+            <a href="/views/login.html">Inicio de sesión</a>
+        </div>
+        
+        <div id="user-section" style="display: none;">
+            <h2>¡Bienvenido de vuelta!</h2>
+            <p>Estás autenticado como: <span id="user-email"></span></p>
+            <p>Tu rol es: <span id="user-role"></span></p>
+            <a href="dashboard.html" class="btn btn-primary">Dashboard</a>
+            <button onclick="logout()" class="btn btn-secondary">Cerrar Sesión</button>
+        </div>
+    </div>
+    <script>
+        // Verificar si el usuario está autenticado
+        const authToken = localStorage.getItem('token');
+        if (authToken) {
+            fetch('/api/auth/verify', {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.user) {
+                    document.getElementById('auth-section').style.display = 'none';
+                    document.getElementById('user-section').style.display = 'block';
+                    document.getElementById('user-email').textContent = data.user.email;
+                    document.getElementById('user-role').textContent = data.user.role;
+                }
+            })
+            .catch(() => {
+                localStorage.removeItem('token');
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!-- Panel de administración de Filo al Toque -->
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #dc3545; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .admin-section { background-color: #fff3cd; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #ffc107; }
+        .btn { padding: 10px 15px; margin: 5px; text-decoration: none; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .user-info { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .restricted-message { background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚙️ Panel de Administración</h1>
+        <p>Área restringida - Solo para administradores</p>
+    </div>
+    
+    <div class="user-info">
+        <h3>Información del Administrador</h3>
+        <p><strong>Email:</strong> <span id="admin-email">Cargando...</span></p>
+        <p><strong>Rol:</strong> <span id="admin-role">Cargando...</span></p>
+        <p><strong>ID:</strong> <span id="admin-id">Cargando...</span></p>
+    </div>
+    
+    <div class="admin-section">
+        <h3>🔐 Contenido Exclusivo de Administrador</h3>
+        <p>Este contenido solo es visible para usuarios con rol de administrador.</p>
+        <p>Aquí podrías implementar funcionalidades como:</p>
+        <ul>
+            <li>Gestión de usuarios</li>
+            <li>Configuración del sistema</li>
+            <li>Reportes y estadísticas</li>
+            <li>Logs de auditoría</li>
+        </ul>
+    </div>
+    
+    <div class="admin-section">
+        <h3>📊 Estadísticas del Sistema</h3>
+        <p><strong>Total de usuarios registrados:</strong> <span id="user-count">Calculando...</span></p>
+        <p><strong>Última conexión:</strong> <span id="last-connection">Verificando...</span></p>
+        <p><strong>Estado del sistema:</strong> <span style="color: green;">✅ Operativo</span></p>
+    </div>
+    
+    <div class="actions">
+        <h3>Acciones de Administrador</h3>
+        <button onclick="testAdminEndpoint()" class="btn btn-primary">Verificar Permisos de Admin</button>
+        <a href="dashboard.html" class="btn btn-warning">Dashboard Usuario</a>
+        <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
+    </div>
+    
+    <div id="test-results" style="margin-top: 20px;"></div>
+
+    <script>
+        const adminToken = localStorage.getItem('token');
+        
+        // Verificar autenticación y permisos de admin
+        if (!adminToken) {
+            showAccessDenied('No estás autenticado');
+        }
+
+        async function loadAdminInfo() {
+            try {
+                // Primero verificar autenticación
+                const authResponse = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const authData = await authResponse.json();
+                
+                if (!authResponse.ok || !authData.user) {
+                    throw new Error('Token inválido');
+                }
+
+                // Verificar que es administrador
+                if (authData.user.role !== 'admin') {
+                    showAccessDenied('No tienes permisos de administrador');
+                    return;
+                }
+
+                // Cargar información del admin
+                document.getElementById('admin-email').textContent = authData.user.email;
+                document.getElementById('admin-role').textContent = authData.user.role;
+                document.getElementById('admin-id').textContent = authData.user.id;
+                
+                // Simular estadísticas (en una app real, estos vendrían de endpoints específicos)
+                document.getElementById('user-count').textContent = '5 usuarios';
+                document.getElementById('last-connection').textContent = new Date().toLocaleString();
+                
+            } catch (error) {
+                showAccessDenied('Error de autenticación');
+            }
+        }
+
+        function showAccessDenied(reason) {
+            document.body.innerHTML = `
+                <div class="restricted-message">
+                    <h2>🚫 Acceso Denegado</h2>
+                    <p><strong>Razón:</strong> ${reason}</p>
+                    <p>Esta página está restringida solo para administradores.</p>
+                    <div style="margin-top: 20px;">
+                        <a href="login.html" class="btn btn-primary">Iniciar Sesión</a>
+                        <a href="index.html" class="btn btn-warning">Volver al Inicio</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function testAdminEndpoint() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            try {
+                // Intentar acceder a una ruta protegida de admin
+                const response = await fetch('/api/users/admin', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="admin-section">
+                            <h4>✅ Test de Permisos de Admin Exitoso</h4>
+                            <p>Tienes acceso completo a las funcionalidades de administrador.</p>
+                            <p>Endpoint /api/users/admin respondió correctamente.</p>
+                        </div>
+                    `;
+                } else if (response.status === 403) {
+                    throw new Error('No tienes permisos de administrador');
+                } else {
+                    throw new Error('Error en el servidor');
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="restricted-message">
+                        <h4>❌ Error en Test de Permisos</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Sesión de administrador cerrada');
+            window.location.href = 'index.html';
+        }
+
+        // Cargar información al inicializar
+        loadAdminInfo();
+    </script>
+</body>
+</html>

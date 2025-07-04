@@ -1,0 +1,137 @@
+<!-- Dashboard de usuario -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .user-info { background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .btn { padding: 10px 15px; margin: 5px; text-decoration: none; border: none; cursor: pointer; border-radius: 5px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn:hover { opacity: 0.8; }
+        .actions { margin-top: 20px; }
+        .protected-content { background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Dashboard del Usuario</h1>
+        <p>Panel de control para usuarios autenticados</p>
+    </div>
+    
+    <div class="user-info">
+        <h3>Información del Usuario</h3>
+        <p><strong>Email:</strong> <span id="user-email">Cargando...</span></p>
+        <p><strong>Rol:</strong> <span id="user-role">Cargando...</span></p>
+        <p><strong>ID:</strong> <span id="user-id">Cargando...</span></p>
+    </div>
+    
+    <div class="protected-content">
+        <h3>🔒 Contenido Protegido</h3>
+        <p>Este contenido solo es visible para usuarios autenticados.</p>
+        <p>Tu token JWT está activo y es válido.</p>
+    </div>
+    
+    <div class="actions">
+        <h3>Acciones Disponibles</h3>
+        <button onclick="testAuthEndpoint()" class="btn btn-primary">Verificar Token</button>
+        <button id="admin-btn" onclick="goToAdmin()" class="btn btn-success" style="display: none;">Panel de Admin</button>
+        <a href="index.html" class="btn btn-warning">Volver al Inicio</a>
+        <button onclick="logout()" class="btn btn-danger">Cerrar Sesión</button>
+    </div>
+    
+    <div id="test-results" style="margin-top: 20px;"></div>
+
+    <script>
+        // Verificar autenticación al cargar la página
+        const userToken = localStorage.getItem('token');
+        if (!userToken) {
+            alert('No estás autenticado. Redirigiendo al login...');
+            window.location.href = 'login.html';
+        }
+
+        // Cargar información del usuario
+        async function loadUserInfo() {
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.user) {
+                    document.getElementById('user-email').textContent = data.user.email;
+                    document.getElementById('user-role').textContent = data.user.role;
+                    document.getElementById('user-id').textContent = data.user.id;
+                    
+                    // Mostrar botón de admin si es administrador
+                    if (data.user.role === 'admin') {
+                        document.getElementById('admin-btn').style.display = 'inline-block';
+                    }
+                } else {
+                    throw new Error('Token inválido');
+                }
+            } catch (error) {
+                alert('Error de autenticación. Redirigiendo al login...');
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Probar endpoint protegido
+        async function testAuthEndpoint() {
+            const resultsDiv = document.getElementById('test-results');
+            
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${userToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultsDiv.innerHTML = `
+                        <div class="protected-content">
+                            <h4>✅ Test de Autenticación Exitoso</h4>
+                            <p>El token es válido y el endpoint responde correctamente.</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div style="background-color: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px;">
+                        <h4>❌ Error en Test de Autenticación</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function goToAdmin() {
+            window.location.href = 'admin.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Sesión cerrada exitosamente');
+            window.location.href = 'index.html';
+        }
+
+        // Cargar información al inicializar
+        loadUserInfo();
+    </script>
+</body>
+</html>
